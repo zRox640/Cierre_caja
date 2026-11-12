@@ -25,17 +25,17 @@ def realizar_calculos(df):
         total_efectivo = df.loc[mask_efectivo].iloc[:, 5].sum()
         total_debito = df.loc[mask_debito].iloc[:, 5].sum()
         
-        # --- LÓGICA DE BOLETAS MEJORADA ---
-        # 1. Columna A (Indice 0): Forzamos a texto, quitamos espacios invisibles. 
-        # Si queda completamente vacío ("") o dice "nan" (Not a Number), lo damos por vacío.
+        # --- LÓGICA DE BOLETAS CORREGIDA ---
         col_a_texto = df.iloc[:, 0].astype(str).str.lower().str.strip()
-        mask_a_vacia = col_a_texto.isin(["", "nan", "none", "nat"])
         
-        # 2. Columna B (Indice 1): Le quitamos las comillas y puntos por si el número de boleta viene sucio.
+        # Agregamos explícitamente el guion "-" a la lista de cosas que consideramos "vacío"
+        mask_a_vacia = col_a_texto.isin(["", "nan", "none", "nat", "-"])
+        
+        # Columna B: verificamos que contenga un número válido
         col_b_texto = df.iloc[:, 1].astype(str).str.replace("'", "", regex=False).str.replace(".", "", regex=False)
         mask_b_numero = pd.to_numeric(col_b_texto, errors='coerce').notna()
         
-        # 3. Suma final
+        # Sumamos donde se cumplen todas las condiciones
         mask_es_boleta = mask_a_vacia & mask_b_numero
         total_efectivo_boleta = df.loc[mask_efectivo & mask_es_boleta].iloc[:, 5].sum()
         
@@ -49,7 +49,6 @@ def realizar_calculos(df):
     except Exception as e:
         st.error(f"Error procesando los datos: {str(e)}")
         return None
-
 
 # --- INTERFAZ VISUAL ---
 try:
