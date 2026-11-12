@@ -2,8 +2,14 @@ import streamlit as st
 import pandas as pd
 from PIL import Image
 
-st.set_page_config(page_title="Gestor de Pagos", page_icon="💰", layout="centered")
+# --- 1. CONFIGURACIÓN DE LA PÁGINA ---
+st.set_page_config(
+    page_title="Gestor de Pagos",
+    page_icon="💰",
+    layout="centered"
+)
 
+# --- 2. LÓGICA MATEMÁTICA ---
 def realizar_calculos(df):
     if df.shape[1] < 6:
         st.error("El archivo tiene menos de 6 columnas.")
@@ -26,16 +32,15 @@ def realizar_calculos(df):
         total_debito = df.loc[mask_debito].iloc[:, 5].sum()
         
         # --- LÓGICA DE BOLETAS CORREGIDA ---
+        # 1. Columna A (Indice 0): Consideramos el guion "-" como vacío
         col_a_texto = df.iloc[:, 0].astype(str).str.lower().str.strip()
-        
-        # Agregamos explícitamente el guion "-" a la lista de cosas que consideramos "vacío"
         mask_a_vacia = col_a_texto.isin(["", "nan", "none", "nat", "-"])
         
-        # Columna B: verificamos que contenga un número válido
+        # 2. Columna B (Indice 1): Verificamos que contenga un número
         col_b_texto = df.iloc[:, 1].astype(str).str.replace("'", "", regex=False).str.replace(".", "", regex=False)
         mask_b_numero = pd.to_numeric(col_b_texto, errors='coerce').notna()
         
-        # Sumamos donde se cumplen todas las condiciones
+        # 3. Suma final
         mask_es_boleta = mask_a_vacia & mask_b_numero
         total_efectivo_boleta = df.loc[mask_efectivo & mask_es_boleta].iloc[:, 5].sum()
         
@@ -50,7 +55,8 @@ def realizar_calculos(df):
         st.error(f"Error procesando los datos: {str(e)}")
         return None
 
-# --- INTERFAZ VISUAL ---
+# --- 3. INTERFAZ VISUAL ---
+
 try:
     image = Image.open('fondo.jpg')
     st.image(image, width=100) 
@@ -58,6 +64,7 @@ except:
     pass 
 
 st.title("Procesador de Ventas Web")
+st.write("Sube tu archivo Excel para calcular los totales.")
 
 archivo_subido = st.file_uploader("Elige tu archivo Excel", type=['xlsx', 'xls'])
 
@@ -65,14 +72,6 @@ if archivo_subido is not None:
     with st.spinner('Calculando...'):
         try:
             df = pd.read_excel(archivo_subido, header=None)
-            
-            # --- MODO DEBUG (RAYOS X) ---
-            # Esto mostrará las primeras 15 filas de tu Excel directo en la página web
-            # Así podremos ver si la columna 0 realmente está vacía y si la 1 tiene el número
-            with st.expander("🔍 Ver datos leídos (Modo Rayos X)"):
-                st.dataframe(df.head(15))
-            # ---------------------------
-
             totales = realizar_calculos(df)
             
             if totales:
